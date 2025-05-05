@@ -4,6 +4,7 @@ from app.services.mongo_logger import log_search_to_db, update_url_response
 from app.services.llama_caller import call_llama
 from app.models.admin_schema import AdminRegistration
 from app.services.admin_register import register_admin_profile
+from app.utils.create_llm_instance import create_llm_for_company
 
 router = APIRouter()
 
@@ -26,4 +27,11 @@ async def log_and_trigger_llm(data: UserQuery):
 @router.post("/register_admin")
 async def register_admin(data: AdminRegistration):
     register_admin_profile(data.model_dump())
-    return {"status": "Admin profile registered successfully"}
+    
+    # Calls utils\create_llm_instance.py LLM and update AdminUserProfiles with LLMEndpoint
+    llm_response = create_llm_for_company(data.CompanyName)
+
+    return {
+        "status": "Admin profile registered successfully",
+        "llm": llm_response
+    }
