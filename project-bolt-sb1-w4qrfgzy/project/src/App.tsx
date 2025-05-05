@@ -6,6 +6,7 @@ import HomePage from './pages/HomePage';
 import AdminLogin from './pages/AdminLogin';
 import AdminRegister from './pages/AdminRegister';
 import AdminDashboard from './pages/AdminDashboard';
+import AdminAnalytics from './pages/AdminAnalytics';
 import CompanyProfile from './pages/CompanyProfile';
 import UserLogin from './pages/UserLogin';
 import UserRegister from './pages/UserRegister';
@@ -42,6 +43,14 @@ function App() {
               } 
             />
             <Route 
+              path="/admin/analytics" 
+              element={
+                <AdminRoute>
+                  <AdminAnalytics />
+                </AdminRoute>
+              } 
+            />
+            <Route 
               path="/admin/company-profile" 
               element={
                 <AdminRoute>
@@ -65,4 +74,4 @@ function App() {
   );
 }
 
-export default App;
+export default App

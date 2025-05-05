@@ -1,7 +1,7 @@
 from pymongo import MongoClient
 from uuid import uuid4
 from datetime import datetime, timezone
-from app.config.settings import MONGO_URI
+from config.settings import MONGO_URI
 
 client = MongoClient(MONGO_URI)
 db = client["query_bridge"]

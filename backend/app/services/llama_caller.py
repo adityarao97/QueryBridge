@@ -1,5 +1,5 @@
 import requests
-from app.config.settings import LLAMA_ENDPOINTS
+from config.settings import LLAMA_ENDPOINTS
 
 def call_llama(company: str, prompt: str):
     llama_url = LLAMA_ENDPOINTS.get(company)

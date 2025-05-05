@@ -1,9 +1,10 @@
 from fastapi import APIRouter
-from app.models.schema import UserQuery
-from app.services.mongo_logger import log_search_to_db, update_url_response
-from app.services.llama_caller import call_llama
-from app.models.admin_schema import AdminRegistration
-from app.services.admin_register import register_admin_profile
+from models.schema import UserQuery
+from services.mongo_logger import log_search_to_db, update_url_response
+from services.llama_caller import call_llama
+from models.admin_schema import AdminRegistration
+from services.admin_register import register_admin_profile
+from services.fetch_admin_data import get_company_search_metrics_service
 
 router = APIRouter()
 
@@ -27,3 +28,8 @@ async def log_and_trigger_llm(data: UserQuery):
 async def register_admin(data: AdminRegistration):
     register_admin_profile(data.model_dump())
     return {"status": "Admin profile registered successfully"}
+
+
+@router.get("/metrics/company-searches")
+def get_company_search_metrics():
+    return get_company_search_metrics_service()

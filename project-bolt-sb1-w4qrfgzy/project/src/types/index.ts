@@ -53,3 +53,12 @@ export interface SearchStats {
     count: number;
   }[];
 }
+
+export interface CompanyRegistration {
+  CompanyName: string;
+  Domain: string;
+  Description: string;
+  API_Endpoint: string;
+  Parameters: string[];
+  ExampleQueries: string[];
+}

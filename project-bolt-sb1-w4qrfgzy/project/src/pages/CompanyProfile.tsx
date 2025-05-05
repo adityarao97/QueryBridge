@@ -1,26 +1,18 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-
-interface CompanyProfileForm {
-  companyName: string;
-  domain: string;
-  description: string;
-  apiEndpoint: string;
-  parameters: string[];
-  exampleQueries: string[];
-}
+import { CompanyRegistration } from '../types';
 
 const CompanyProfile: React.FC = () => {
   const navigate = useNavigate();
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [form, setForm] = useState<CompanyProfileForm>({
-    companyName: '',
-    domain: '',
-    description: '',
-    apiEndpoint: '',
-    parameters: [],
-    exampleQueries: ['', '']
+  const [form, setForm] = useState<CompanyRegistration>({
+    CompanyName: '',
+    Domain: '',
+    Description: '',
+    API_Endpoint: '',
+    Parameters: [],
+    ExampleQueries: ['', '']
   });
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -29,11 +21,21 @@ const CompanyProfile: React.FC = () => {
     setError(null);
 
     try {
-      // API call would go here
-      await new Promise(resolve => setTimeout(resolve, 1000)); // Simulated API call
+      const response = await fetch('http://localhost:8000/register_admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(form)
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to register company');
+      }
+
       navigate('/admin/dashboard');
     } catch (err) {
-      setError('Failed to save company profile');
+      setError(err instanceof Error ? err.message : 'Failed to save company profile');
     } finally {
       setIsLoading(false);
     }
@@ -42,14 +44,14 @@ const CompanyProfile: React.FC = () => {
   const handleParameterChange = (value: string) => {
     setForm(prev => ({
       ...prev,
-      parameters: value.split(',').map(p => p.trim()).filter(Boolean)
+      Parameters: value.split(',').map(p => p.trim()).filter(Boolean)
     }));
   };
 
   const handleExampleQueryChange = (index: number, value: string) => {
     setForm(prev => ({
       ...prev,
-      exampleQueries: prev.exampleQueries.map((q, i) => i === index ? value : q)
+      ExampleQueries: prev.ExampleQueries.map((q, i) => i === index ? value : q)
     }));
   };
 
@@ -72,9 +74,9 @@ const CompanyProfile: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={form.companyName}
-                onChange={e => setForm(prev => ({ ...prev, companyName: e.target.value }))}
-                placeholder="e.g., LinkedIn"
+                value={form.CompanyName}
+                onChange={e => setForm(prev => ({ ...prev, CompanyName: e.target.value }))}
+                placeholder="e.g., Walmart"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -86,9 +88,9 @@ const CompanyProfile: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={form.domain}
-                onChange={e => setForm(prev => ({ ...prev, domain: e.target.value }))}
-                placeholder="e.g., linkedin.com"
+                value={form.Domain}
+                onChange={e => setForm(prev => ({ ...prev, Domain: e.target.value }))}
+                placeholder="e.g., walmart.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -99,9 +101,9 @@ const CompanyProfile: React.FC = () => {
                 Description
               </label>
               <textarea
-                value={form.description}
-                onChange={e => setForm(prev => ({ ...prev, description: e.target.value }))}
-                placeholder="e.g., Professional platform for networking and job search."
+                value={form.Description}
+                onChange={e => setForm(prev => ({ ...prev, Description: e.target.value }))}
+                placeholder="e.g., E-Commerce platform for buying stuff online"
                 rows={3}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
@@ -114,9 +116,9 @@ const CompanyProfile: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={form.apiEndpoint}
-                onChange={e => setForm(prev => ({ ...prev, apiEndpoint: e.target.value }))}
-                placeholder="e.g., /searchProfiles"
+                value={form.API_Endpoint}
+                onChange={e => setForm(prev => ({ ...prev, API_Endpoint: e.target.value }))}
+                placeholder="e.g., /searchProducts"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
               />
@@ -128,15 +130,15 @@ const CompanyProfile: React.FC = () => {
               </label>
               <input
                 type="text"
-                value={form.parameters.join(', ')}
+                value={form.Parameters.join(', ')}
                 onChange={e => handleParameterChange(e.target.value)}
-                placeholder="e.g., company, title, school"
+                placeholder="e.g., categories, filter, keyword"
                 className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                 required
               />
-              {form.parameters.length > 0 && (
+              {form.Parameters.length > 0 && (
                 <div className="mt-2 flex flex-wrap gap-2">
-                  {form.parameters.map((param, index) => (
+                  {form.Parameters.map((param, index) => (
                     <span
                       key={index}
                       className="px-2 py-1 bg-blue-100 text-blue-800 rounded-md text-sm"
@@ -155,17 +157,17 @@ const CompanyProfile: React.FC = () => {
               <div className="space-y-3">
                 <input
                   type="text"
-                  value={form.exampleQueries[0]}
+                  value={form.ExampleQueries[0]}
                   onChange={e => handleExampleQueryChange(0, e.target.value)}
-                  placeholder="e.g., Find PMs at Google from MIT"
+                  placeholder="e.g., Bluetooth speakers of Sony under 500$"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
                 <input
                   type="text"
-                  value={form.exampleQueries[1]}
+                  value={form.ExampleQueries[1]}
                   onChange={e => handleExampleQueryChange(1, e.target.value)}
-                  placeholder="e.g., Show engineers at Amazon from IIT"
+                  placeholder="e.g., 144hz and above gaming monitors under 200$"
                   className="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
                   required
                 />
