@@ -8,6 +8,7 @@ from app.utils.create_llm_instance import create_llm_for_company
 
 router = APIRouter()
 
+#FASTAPI 1 log_and_query API
 @router.post("/log_and_query")
 async def log_and_trigger_llm(data: UserQuery):
     # Step 1: Log search to DB
@@ -24,6 +25,7 @@ async def log_and_trigger_llm(data: UserQuery):
 
     return {"status": "logged and llama triggered"}
 
+#FASTAPI 2 register_admin API
 @router.post("/register_admin")
 async def register_admin(data: AdminRegistration):
     register_admin_profile(data.model_dump())
