@@ -5,9 +5,11 @@ from services.llama_caller import call_llama
 from models.admin_schema import AdminRegistration
 from services.admin_register import register_admin_profile
 from services.fetch_admin_data import get_company_search_metrics_service
+from utils.create_llm_instance import create_llm_for_company
 
 router = APIRouter()
 
+#FASTAPI 1 log_and_query API
 @router.post("/log_and_query")
 async def log_and_trigger_llm(data: UserQuery):
     # Step 1: Log search to DB
@@ -24,9 +26,17 @@ async def log_and_trigger_llm(data: UserQuery):
 
     return {"status": "logged and llama triggered"}
 
+#FASTAPI 2 register_admin API
 @router.post("/register_admin")
 async def register_admin(data: AdminRegistration):
     register_admin_profile(data.model_dump())
+    # Calls utils\create_llm_instance.py LLM and update AdminUserProfiles with LLMEndpoint
+    llm_response = create_llm_for_company(data.CompanyName)
+
+    return {
+        "status": "Admin profile registered successfully",
+        "llm": llm_response
+    }
     return {"status": "Admin profile registered successfully"}
 
 
