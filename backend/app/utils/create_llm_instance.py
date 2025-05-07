@@ -6,6 +6,7 @@ import hashlib
 from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
 import torch
 from app.config.settings import MONGO_URI
+from datetime import datetime, timezone
 
 app = FastAPI()
 
@@ -90,4 +91,28 @@ async def init_llm(req: CompanyRequest, request: Request):
     return {
         "message": f"LLM instance for '{req.companyId}' initialized successfully.",
         "llm_endpoint": full_url
+    }
+
+def create_llm_for_company(company_id: str):
+    company = collection.find_one({"CompanyName": company_id})
+    if not company:
+        return None
+
+    system_prompt = build_prompt(company)
+    instance = spin_up_llm(company_id, system_prompt)
+
+    endpoint_hash = hashlib.sha1(company_id.encode()).hexdigest()[:8]
+    llm_endpoint = f"http://localhost:8000/llm/{endpoint_hash}"
+
+    collection.update_one(
+        {"CompanyName": company_id},
+        {"$set": {
+            "LLMEndpoint": llm_endpoint,
+            "LLMInitializedAt": datetime.now(timezone.utc)
+        }}
+    )
+
+    return {
+        "status": "LLM instance initialized",
+        "llm_endpoint": llm_endpoint
     }
