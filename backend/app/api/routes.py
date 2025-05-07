@@ -18,27 +18,32 @@ async def log_and_trigger_llm(data: UserQuery):
     # Step 2: Call LLaMA model
     llama_response = call_llama(data.company, data.query)
 
+    print("llama_response is ", llama_response)
     # Step 3: Update the log with success/failure message
     if llama_response:
         update_url_response(search_id, "LLM Triggered Successfully")
+        # Extract the content from the llama_response
+        content = llama_response.get("message", {}).get("content", None)
     else:
         update_url_response(search_id, "LLM Trigger Failed")
+        content = None
 
-    return {"status": "logged and llama triggered"}
+    return {
+        "status": "logged and llama triggered",
+        "llama_response_content": content
+    }
 
 #FASTAPI 2 register_admin API
 @router.post("/register_admin")
 async def register_admin(data: AdminRegistration):
-    register_admin_profile(data.model_dump())
+    updated_data = register_admin_profile(data.model_dump())
     # Calls utils\create_llm_instance.py LLM and update AdminUserProfiles with LLMEndpoint
-    llm_response = create_llm_for_company(data.CompanyName)
+    llm_response = create_llm_for_company(updated_data["CompanyId"])
 
     return {
         "status": "Admin profile registered successfully",
         "llm": llm_response
     }
-    return {"status": "Admin profile registered successfully"}
-
 
 @router.get("/metrics/company-searches")
 def get_company_search_metrics():

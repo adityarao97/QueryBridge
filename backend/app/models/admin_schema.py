@@ -1,8 +1,10 @@
+import uuid
 from pydantic import BaseModel
 from typing import List, Optional
 from datetime import datetime
 
 class AdminRegistration(BaseModel):
+    CompanyId: str = str(uuid.uuid4())
     CompanyName: str
     Domain: str
     Description: str

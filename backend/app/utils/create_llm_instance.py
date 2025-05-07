@@ -3,16 +3,21 @@ from fastapi import FastAPI, HTTPException, Request
 from pydantic import BaseModel
 from pymongo import MongoClient
 import hashlib
-from transformers import AutoTokenizer, AutoModelForCausalLM, pipeline
+from transformers import AutoTokenizer, AutoModelForSeq2SeqLM, pipeline
 import torch
-from app.config.settings import MONGO_URI
+import requests
+from config.settings import MONGO_URI
 from datetime import datetime, timezone
+from fastapi import APIRouter
+# Create a router for dynamically added endpoints
+dynamic_router = APIRouter()
 
 app = FastAPI()
 
 # MongoDB config
 client = MongoClient(MONGO_URI)
-collection = client.get_database("QueryBridge")["AdminUserProfiles"]
+db = client["query_bridge"]
+collection = db["AdminUserProfiles"]
 
 # === LLM Registry (in-memory) ===
 llm_registry = {}  # companyId -> {pipeline, prompt, endpoint}
@@ -25,39 +30,70 @@ class CompanyRequest(BaseModel):
 
 # === Prompt Builder ===
 def build_prompt(company):
-    param_list = ', '.join(company.get("Parameters", []))
-    domain = company.get("Domain", "")
-    endpoint = company.get("API Endpoint", "")
+    domain = company.get("Domain", "Walmart.com")
+    endpoint = company.get("API_Endpoint", "https://www.walmart.com/searchProducts")
+    params = company.get("Parameters", [])
+
+    # format bullet list of supported params
+    params_formatted = ""
+    if params:
+        params_formatted = "\n  • " + "\n  • ".join(params)
+
+    # build the template string for actual URL generation
+    template_params = "&".join(f"{p}={{{p}}}" for p in params)
+
+    # build a generic example (using uppercase placeholders)
+    example_query = "example query providing values for: " + ", ".join(params)
+    example_url = endpoint
+    if params:
+        example_url += "?" + "&".join(f"{p}={p.upper()}" for p in params)
 
     return (
-        f"You are an intelligent URL generator designed to convert natural language prompts into precise search URLs.\n\n"
-        f"Your role is to assist users by interpreting their natural language input and generating a complete URL that, when pasted into a browser, will return the exact search results they are looking for.\n\n"
-        f"You are configured for the domain: {domain}, which supports filters such as: {param_list}.\n\n"
-        f"When generating URLs:\n"
-        f"- Identify all relevant filters from the user’s query.\n"
-        f"- Use as many supported filters as possible in the final URL.\n"
-        f"- Ensure the URL matches the structure of the API endpoint: {endpoint}.\n"
-        f"- Do not add unsupported or guessed parameters.\n\n"
-        f"I will provide prompts one by one. Return only the final search URL in your response."
+        f"You are an intelligent URL generator for {domain}.\n"
+        f"Base search endpoint: {endpoint}\n"
+        f"Supported query params:{params_formatted}\n\n"
+        f"When you see a user query, map it to those params and output EXACTLY one URL:\n"
+        f"{endpoint}?{template_params}\n\n"
+        f"Return only the URL (no bullets, no explanation).\n\n"
+        f"Example:\n"
+        f"User: {example_query}\n"
+        f"Assistant: {example_url}"
     )
+
+
 
 
 # === LLaMA Instance Loader ===
 def spin_up_llm(company_name: str, system_prompt: str):
-    print(f"[INFO] 🚀 Spinning up LLaMA instance for: {company_name}")
+    print(f"[INFO] 🚀 Spinning up Flan-T5 instance for: {company_name}")
 
-    model_name = "meta-llama/Llama-2-7b-chat-hf"  # Replace with your fine-tuned or local model
+    model_name = "google/flan-t5-small"
     tokenizer = AutoTokenizer.from_pretrained(model_name)
-    model = AutoModelForCausalLM.from_pretrained(model_name, torch_dtype=torch.float16, device_map="auto")
+    model = AutoModelForSeq2SeqLM.from_pretrained(model_name)
 
-    gen_pipeline = pipeline("text-generation", model=model, tokenizer=tokenizer)
+    gen_pipeline = pipeline("text2text-generation", model=model, tokenizer=tokenizer)
 
-    print(f"[READY] ✅ LLaMA instance ready for: {company_name}")
+    print(f"[READY] ✅ Flan-T5 instance ready for: {company_name}")
     return {
         "company": company_name,
         "system_prompt": system_prompt,
         "pipeline": gen_pipeline
     }
+    
+
+def spin_up_llm_ollama(company_name: str, system_prompt: str):
+    print(f"[INFO] 🚀 Spinning up Ollama instance for: {company_name}")
+
+    # Ollama does not require model loading in Python; it runs as a local server.
+    # Store the system prompt for use in API calls.
+    instance = {
+        "company": company_name,
+        "system_prompt": system_prompt,
+        "pipeline": None  # Placeholder for the pipeline
+    }
+
+    print(f"[READY] ✅ Ollama instance ready for: {company_name}")
+    return instance
 
 
 # === FastAPI Route ===
@@ -93,25 +129,36 @@ async def init_llm(req: CompanyRequest, request: Request):
         "llm_endpoint": full_url
     }
 
-def create_llm_for_company(company_id: str):
-    company = collection.find_one({"CompanyName": company_id})
+
+def create_llm_for_company(CompanyId: str):
+    # Fetch the company details from the database
+    company = collection.find_one({"CompanyId": CompanyId})
     if not company:
-        return None
+        raise HTTPException(status_code=404, detail=f"Company with ID '{CompanyId}' not found.")
 
+    # Build the system prompt for the LLM
     system_prompt = build_prompt(company)
-    instance = spin_up_llm(company_id, system_prompt)
 
-    endpoint_hash = hashlib.sha1(company_id.encode()).hexdigest()[:8]
-    llm_endpoint = f"http://localhost:8000/llm/{endpoint_hash}"
+    # Spin up the LLM instance (store system prompt for use)
+    instance = spin_up_llm_ollama(CompanyId, system_prompt)
 
+    # Generate the endpoint hash and URL (for reference only)
+    llm_endpoint = f"http://localhost:11434/api/chat"  # Ollama's default API endpoint
+
+    # Save the system prompt and endpoint in the database
     collection.update_one(
-        {"CompanyName": company_id},
+        {"CompanyId": CompanyId},
         {"$set": {
             "LLMEndpoint": llm_endpoint,
+            "SystemPrompt": system_prompt,  # Save the system prompt
             "LLMInitializedAt": datetime.now(timezone.utc)
         }}
     )
 
+    # Debug: Print the Ollama endpoint
+    print(f"Ollama endpoint: {llm_endpoint}")
+
+    # Return the LLM initialization status
     return {
         "status": "LLM instance initialized",
         "llm_endpoint": llm_endpoint
