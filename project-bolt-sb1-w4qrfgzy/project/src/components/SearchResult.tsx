@@ -17,11 +17,12 @@ const SearchResult: React.FC<SearchResultProps> = ({
   if (isLoading) {
     return (
       <div className="mt-8 p-6 bg-white rounded-lg shadow-md max-w-3xl mx-auto">
-        <div className="animate-pulse space-y-4">
-          <div className="h-4 bg-gray-200 rounded w-3/4"></div>
-          <div className="h-4 bg-gray-200 rounded w-1/2"></div>
-          <div className="h-10 bg-gray-200 rounded w-full"></div>
+        <div className="flex items-center justify-center space-x-2 animate-pulse">
+          <div className="w-4 h-4 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
+          <div className="w-4 h-4 bg-blue-400 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
+          <div className="w-4 h-4 bg-blue-400 rounded-full animate-bounce"></div>
         </div>
+        <p className="text-center text-gray-500 mt-4">Processing your query with AI...</p>
       </div>
     );
   }
@@ -43,7 +44,7 @@ const SearchResult: React.FC<SearchResultProps> = ({
       </div>
       
       <div className="p-4 bg-blue-50 rounded-lg border border-blue-100">
-        <div className="text-sm text-blue-600 mb-2">Result URL:</div>
+        <div className="text-sm text-blue-600 mb-2">Generated URL:</div>
         <div className="flex items-center">
           <a 
             href={resultUrl} 

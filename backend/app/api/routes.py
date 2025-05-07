@@ -1,4 +1,7 @@
-from fastapi import APIRouter
+from fastapi import APIRouter,File, UploadFile, Form
+from fastapi.responses import JSONResponse
+from typing import List
+from services.company_service import fetch_all_companies
 from models.schema import UserQuery
 from services.mongo_logger import log_search_to_db, update_url_response
 from services.llama_caller import call_llama
@@ -23,7 +26,7 @@ async def log_and_trigger_llm(data: UserQuery):
     if llama_response:
         update_url_response(search_id, "LLM Triggered Successfully")
         # Extract the content from the llama_response
-        content = llama_response.get("message", {}).get("content", None)
+        content = llama_response.get("message", {}).get("content", None).replace("\n", "")
     else:
         update_url_response(search_id, "LLM Trigger Failed")
         content = None
@@ -48,3 +51,13 @@ async def register_admin(data: AdminRegistration):
 @router.get("/metrics/company-searches")
 def get_company_search_metrics():
     return get_company_search_metrics_service()
+
+@router.get("/companies")
+async def get_all_companies():
+    """
+    API to fetch all companies from the AdminUserProfiles collection.
+    """
+    companies = fetch_all_companies()
+    if companies is None:
+        return JSONResponse(content={"error": "Failed to fetch companies"}, status_code=500)
+    return JSONResponse(content={"companies": companies}, status_code=200)

@@ -27,7 +27,7 @@ def call_llama(company: str, user_prompt: str):
 
     # Prepare the payload for Ollama
     payload = {
-        "model": "llama2:13b-chat",  # Replace with the model name if different
+        "model": "llama3.2",  # Replace with the model name if different
         "stream": False,
         "temperature": 0,
         "stop": ["\n\n"],

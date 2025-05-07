@@ -24,31 +24,27 @@ export const api = {
 
   // Process search query
   processQuery: async (companyId: string, query: string): Promise<string> => {
-    await delay(1200);
-    
-    // Generate a mock URL based on the company and query
-    let baseUrl = '';
-    let queryParam = '';
-    
-    switch (companyId) {
-      case 'amazon':
-        baseUrl = 'https://www.amazon.com/s';
-        queryParam = query.replace(/\s+/g, '+');
-        return `${baseUrl}?k=${queryParam}`;
-      case 'linkedin':
-        baseUrl = 'https://www.linkedin.com/jobs/search/';
-        queryParam = query.replace(/\s+/g, '%20');
-        return `${baseUrl}?keywords=${queryParam}`;
-      case 'booking':
-        baseUrl = 'https://www.booking.com/searchresults.html';
-        queryParam = query.replace(/\s+/g, '+');
-        return `${baseUrl}?ss=${queryParam}`;
-      case 'google':
-        baseUrl = 'https://www.google.com/search';
-        queryParam = query.replace(/\s+/g, '+');
-        return `${baseUrl}?q=${queryParam}`;
-      default:
-        return `https://www.google.com/search?q=${query.replace(/\s+/g, '+')}`;
+    try {
+      // First, log the search query
+      const company = companies.find(c => c.id === companyId);
+      if (!company) throw new Error('Company not found');
+
+      const response = await fetch('http://localhost:8000/log_and_query', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          company: company.name,
+          query: query
+        })
+      });
+
+      const data = await response.json();
+      return data.llama_response_content;
+    } catch (error) {
+      console.error('Error processing query:', error);
+      throw error;
     }
   },
 
