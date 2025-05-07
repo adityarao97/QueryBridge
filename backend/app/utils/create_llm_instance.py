@@ -128,38 +128,3 @@ async def init_llm(req: CompanyRequest, request: Request):
         "message": f"LLM instance for '{req.companyId}' initialized successfully.",
         "llm_endpoint": full_url
     }
-
-
-def create_llm_for_company(CompanyId: str):
-    # Fetch the company details from the database
-    company = collection.find_one({"CompanyId": CompanyId})
-    if not company:
-        raise HTTPException(status_code=404, detail=f"Company with ID '{CompanyId}' not found.")
-
-    # Build the system prompt for the LLM
-    system_prompt = build_prompt(company)
-
-    # Spin up the LLM instance (store system prompt for use)
-    instance = spin_up_llm_ollama(CompanyId, system_prompt)
-
-    # Generate the endpoint hash and URL (for reference only)
-    llm_endpoint = f"http://localhost:11434/api/chat"  # Ollama's default API endpoint
-
-    # Save the system prompt and endpoint in the database
-    collection.update_one(
-        {"CompanyId": CompanyId},
-        {"$set": {
-            "LLMEndpoint": llm_endpoint,
-            "SystemPrompt": system_prompt,  # Save the system prompt
-            "LLMInitializedAt": datetime.now(timezone.utc)
-        }}
-    )
-
-    # Debug: Print the Ollama endpoint
-    print(f"Ollama endpoint: {llm_endpoint}")
-
-    # Return the LLM initialization status
-    return {
-        "status": "LLM instance initialized",
-        "llm_endpoint": llm_endpoint
-    }
